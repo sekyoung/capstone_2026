@@ -38,7 +38,10 @@ the process files for routine changes (port, motor IDs, task costs, etc.).
 ## Install dependencies
 
 ```bash
-pip install pinocchio pink meshcat numpy dynamixel_sdk
+conda create -n robot python=3.12
+conda activate robot
+conda install -c conda-forge pinocchio pink numpy
+pip install meshcat dynamixel_sdk
 ```
 
 ---

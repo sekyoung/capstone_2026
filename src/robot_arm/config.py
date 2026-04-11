@@ -8,21 +8,11 @@ from typing import Dict
 
 @dataclass
 class CommConfig:
-    mode: str = "SHM"           # "SHM" | "UDP"
     ip: str = "127.0.0.1"
-    ik_recv_port: int = 10001   # Unity → IK
-    ik_send_port: int = 10002   # IK → Unity
-    hw_recv_port: int = 9998    # Unity → HW
-    hw_send_port: int = 9997    # HW → Unity
-
-    shm_target_name: str = "UnityIKTarget"
-    shm_ik_reply_name: str = "UnityIKReply"
-    shm_motor_cmd_name: str = "UnityMotorCommand"
-    shm_motor_status_name: str = "UnityMotorStatus"
-
-    shm_target_size: int = 512
-    shm_reply_size: int = 512
-    shm_motor_size: int = 384   # 32 motors × 12 bytes
+    ik_recv_port: int = 10001   # Unity  → IK  (tracking packets)
+    ik_send_port: int = 10002   # IK     → Unity (joint angles)
+    hw_recv_port: int = 9998    # IK     → HW  (motor commands)
+    hw_send_port: int = 9997    # HW     → IK  (motor feedback, future use)
 
 
 @dataclass

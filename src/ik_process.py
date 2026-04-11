@@ -1,14 +1,14 @@
 """
 ik_process.py — inverse kinematics process.
 
-Receives hand/elbow tracking from Unity (via SHM or UDP),
+Receives hand/elbow tracking from Unity over UDP,
 solves QP-based IK using Pinocchio + Pink,
-publishes joint angles back to Unity and to the motor command buffer.
+publishes joint angles back to Unity (and optionally to hw_process.py).
 
 Usage:
     python ik_process.py                  # defaults from config.py
-    python ik_process.py --comm UDP       # override comm mode
     python ik_process.py --urdf my.urdf   # override URDF path
+    python ik_process.py --ip 0.0.0.0    # listen on all interfaces
 """
 import argparse
 import json
@@ -46,22 +46,8 @@ def unity_to_pinocchio(pos, quat_wxyz, scale: float = 1.0) -> pin.SE3:
     return pin.SE3(q.toRotationMatrix(), robot_pos)
 
 
-def parse_tracking_shm(raw: bytes) -> Optional[dict]:
-    """Unpack the 44-byte SHM tracking packet."""
-    if len(raw) < 44:
-        return None
-    vals = struct.unpack("f" * 11, raw[:44])
-    return {
-        "type": "tracking",
-        "hand_pos":     list(vals[0:3]),
-        "hand_rot":     list(vals[3:7]),
-        "elbow_pos":    list(vals[7:10]),
-        "dynamic_scale": vals[10],
-    }
-
-
-def parse_tracking_udp(raw: bytes) -> Optional[dict]:
-    """Decode JSON UDP tracking packet."""
+def parse_tracking(raw: bytes) -> Optional[dict]:
+    """Decode JSON UDP tracking packet from Unity."""
     try:
         return json.loads(raw.decode("utf-8"))
     except Exception:
@@ -126,11 +112,10 @@ class IKSolver:
             jid = model.parents[jid]
         return reach
 
-    def apply_tracking(self, data: dict, comm_mode: str) -> None:
+    def apply_tracking(self, data: dict) -> None:
         """Update internal targets from a parsed tracking packet."""
         if data.get("type") == "calibration":
             arm_length = data.get("arm_length", 1.0)
-            # Recompute scale so robot reach maps to human arm length
             self.dynamic_scale = (self._max_reach / self._cfg.safe_reach_fraction) \
                                   / arm_length * 1.1
             return
@@ -138,8 +123,8 @@ class IKSolver:
         if data.get("type") != "tracking":
             return
 
-        if comm_mode == "SHM":
-            self.dynamic_scale = data.get("dynamic_scale", self.dynamic_scale)
+        # dynamic_scale may be included in tracking packets for live adjustment
+        self.dynamic_scale = data.get("dynamic_scale", self.dynamic_scale)
 
         hand_se3 = unity_to_pinocchio(
             data["hand_pos"], data["hand_rot"], scale=self.dynamic_scale
@@ -258,14 +243,12 @@ def update_visualizer(viz, robot, solver: IKSolver) -> None:
 
 def run(comm_cfg: CommConfig, ik_cfg: IKConfig) -> None:
     solver = IKSolver(ik_cfg)
-    comm = make_ik_comm(comm_cfg, ik_cfg)
+    comm = make_ik_comm(comm_cfg)
     viz = make_visualizer(solver.robot)
 
-    print(f"[IK] Started — comm={comm_cfg.mode}, urdf={ik_cfg.urdf_path}")
+    print(f"[IK] Started — urdf={ik_cfg.urdf_path}")
+    print(f"[IK] Listening on {comm_cfg.ip}:{comm_cfg.ik_recv_port}")
     print(f"[IK] Max reach: {solver._max_reach:.4f} m")
-
-    # Determine parser based on comm mode
-    parse = parse_tracking_shm if comm_cfg.mode == "SHM" else parse_tracking_udp
 
     last_time = time.time()
 
@@ -278,9 +261,9 @@ def run(comm_cfg: CommConfig, ik_cfg: IKConfig) -> None:
             # 1. Receive tracking
             raw = comm.receive()
             if raw is not None:
-                data = parse(raw)
+                data = parse_tracking(raw)
                 if data:
-                    solver.apply_tracking(data, comm_cfg.mode)
+                    solver.apply_tracking(data)
 
             # 2. Solve IK
             q_new = solver.step(dt)
@@ -288,7 +271,7 @@ def run(comm_cfg: CommConfig, ik_cfg: IKConfig) -> None:
             # 3. Visualize
             update_visualizer(viz, solver.robot, solver)
 
-            # 4. Publish
+            # 4. Publish joint angles back to Unity
             packed = struct.pack(f"{len(q_new)}f", *q_new.tolist())
             comm.send(packed)
 
@@ -302,10 +285,8 @@ def run(comm_cfg: CommConfig, ik_cfg: IKConfig) -> None:
 
 def _parse_args():
     p = argparse.ArgumentParser(description="Robot arm IK process")
-    p.add_argument("--comm", choices=["SHM", "UDP"], default=None,
-                   help="Override communication mode")
     p.add_argument("--urdf", default=None, help="Override URDF path")
-    p.add_argument("--ip", default=None, help="Override IP address")
+    p.add_argument("--ip",   default=None, help="Listen IP (default 127.0.0.1)")
     return p.parse_args()
 
 
@@ -313,10 +294,8 @@ if __name__ == "__main__":
     args = _parse_args()
 
     comm_cfg = CommConfig()
-    ik_cfg = IKConfig()
+    ik_cfg   = IKConfig()
 
-    if args.comm:
-        comm_cfg.mode = args.comm
     if args.ip:
         comm_cfg.ip = args.ip
     if args.urdf:

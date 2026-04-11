@@ -29,9 +29,9 @@ def sweep_packet(t: float, radius: float) -> dict:
     Circular sweep in the XZ plane at a fixed Y height.
     Elbow hint is placed halfway between base and hand.
     """
-    x = radius * math.cos(t * 0.5)
+    x = radius * math.cos(t * 2)
     y = 0.18                          # fixed height above base
-    z = 0.12 + radius * math.sin(t * 0.5)
+    z = 0.12 + radius * math.sin(t * 2)
 
     return {
         "type": "tracking",

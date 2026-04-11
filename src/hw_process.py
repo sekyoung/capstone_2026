@@ -4,14 +4,14 @@ hw_process.py — hardware motor control process.
 Runs a 1000 Hz real-time loop:
   1. SyncRead  — bulk-read position/current/velocity from all motors
   2. Parse feedback and update velocity estimates
-  3. Read motor commands from the shared memory / UDP buffer
+  3. Read motor commands from the IK process via UDP
   4. Apply goals and SyncWrite to all motors
-  5. Write feedback back to the shared buffer
+  5. Write feedback back via UDP
 
 Usage:
     python hw_process.py                  # defaults from config.py
-    python hw_process.py --comm UDP       # force UDP mode
     python hw_process.py --port COM5      # override serial port
+    python hw_process.py --hz 500         # reduce loop rate
 """
 import argparse
 import struct
@@ -277,7 +277,7 @@ def control_loop(
 
 def run(comm_cfg: CommConfig, hw_cfg: HardwareConfig) -> None:
     hw = MotorManager(hw_cfg)
-    comm = make_hw_comm(comm_cfg, hw_cfg)
+    comm = make_hw_comm(comm_cfg)
     buffers = SharedBuffers(hw_cfg.max_motors)
     running = threading.Event()
     running.set()
@@ -303,25 +303,16 @@ def run(comm_cfg: CommConfig, hw_cfg: HardwareConfig) -> None:
 
 def _parse_args():
     p = argparse.ArgumentParser(description="Robot arm hardware process")
-    p.add_argument("--comm", choices=["SHM", "UDP"], default=None)
     p.add_argument("--port", default=None, help="Serial port (e.g. COM3 or /dev/ttyUSB0)")
-    p.add_argument("--hz", type=float, default=None, help="Target loop rate")
+    p.add_argument("--hz",   type=float, default=None, help="Target loop rate")
     return p.parse_args()
 
 
 if __name__ == "__main__":
-    import platform
-
     args = _parse_args()
 
     comm_cfg = CommConfig()
-    hw_cfg = HardwareConfig()
-
-    # Default comm mode: SHM on Windows, UDP on others
-    if args.comm:
-        comm_cfg.mode = args.comm
-    elif platform.system() != "Windows":
-        comm_cfg.mode = "UDP"
+    hw_cfg   = HardwareConfig()
 
     if args.port:
         hw_cfg.port = args.port
