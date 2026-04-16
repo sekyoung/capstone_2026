@@ -251,9 +251,10 @@ def run(comm_cfg: CommConfig, ik_cfg: IKConfig) -> None:
     print(f"[IK] Max reach: {solver._max_reach:.4f} m")
 
     last_time = time.time()
-
+    
     try:
         while True:
+            #t0 = time.perf_counter()
             now = time.time()
             dt = max(now - last_time, ik_cfg.min_dt)
             last_time = now
@@ -274,6 +275,10 @@ def run(comm_cfg: CommConfig, ik_cfg: IKConfig) -> None:
             # 4. Publish joint angles back to Unity
             packed = struct.pack(f"{len(q_new)}f", *q_new.tolist())
             comm.send(packed)
+
+            #t1 = time.perf_counter()
+            #print(f"IK solve: {(t1-t0)*1000:.2f} ms")
+
 
     except KeyboardInterrupt:
         print("\n[IK] Shutting down.")
@@ -302,3 +307,4 @@ if __name__ == "__main__":
         ik_cfg.urdf_path = args.urdf
 
     run(comm_cfg, ik_cfg)
+
