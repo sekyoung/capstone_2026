@@ -9,10 +9,10 @@ from typing import Dict
 @dataclass
 class CommConfig:
     ip: str = "127.0.0.1"
-    ik_recv_port: int = 10001   # Unity  → IK  (tracking packets)
-    ik_send_port: int = 10002   # IK     → Unity (joint angles)
-    hw_recv_port: int = 9998    # IK     → HW  (motor commands)
-    hw_send_port: int = 9997    # HW     → IK  (motor feedback, future use)
+    ik_recv_port: int = 10001   # Tracking source → IK  (tracking packets)
+    ik_send_port: int = 10002   # IK → tracking source  (joint angles)
+    hw_recv_port: int = 9998    # IK → HW               (motor commands)
+    hw_send_port: int = 9997    # HW → IK               (motor feedback, future use)
 
 
 @dataclass

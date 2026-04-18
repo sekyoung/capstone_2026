@@ -1,9 +1,13 @@
 """
 ik_process.py — inverse kinematics process.
 
-Receives hand/elbow tracking from Unity over UDP,
+Receives hand/elbow tracking packets over UDP (JSON),
 solves QP-based IK using Pinocchio + Pink,
-publishes joint angles back to Unity (and optionally to hw_process.py).
+and publishes joint angles back on the reply port.
+
+The tracking source is intentionally decoupled — any process that sends
+the expected JSON format to the configured port works (test script,
+ROS 2 bridge, etc.).
 
 Usage:
     python ik_process.py                  # defaults from config.py
@@ -28,14 +32,14 @@ from robot_arm.comm import make_ik_comm
 
 # ── Coordinate conversion ─────────────────────────────────────────────────────
 
-def unity_to_pinocchio(pos, quat_wxyz, scale: float = 1.0) -> pin.SE3:
+def tracking_to_pinocchio(pos, quat_wxyz, scale: float = 1.0) -> pin.SE3:
     """
-    Convert Unity (left-handed, Y-up) position + quaternion to a Pinocchio SE3.
+    Convert incoming (left-handed, Y-up) position + quaternion to a Pinocchio SE3.
 
-    Unity  → Pinocchio axis mapping:
-      X_unity → -Y_pin
-      Y_unity →  Z_pin
-      Z_unity →  X_pin
+    Axis mapping:
+      X_in → -Y_pin
+      Y_in →  Z_pin
+      Z_in →  X_pin
     """
     p = np.array(pos, dtype=np.float64) * scale
     robot_pos = np.array([p[2], -p[0], p[1]])
@@ -47,7 +51,7 @@ def unity_to_pinocchio(pos, quat_wxyz, scale: float = 1.0) -> pin.SE3:
 
 
 def parse_tracking(raw: bytes) -> Optional[dict]:
-    """Decode JSON UDP tracking packet from Unity."""
+    """Decode JSON UDP tracking packet."""
     try:
         return json.loads(raw.decode("utf-8"))
     except Exception:
@@ -126,13 +130,13 @@ class IKSolver:
         # dynamic_scale may be included in tracking packets for live adjustment
         self.dynamic_scale = data.get("dynamic_scale", self.dynamic_scale)
 
-        hand_se3 = unity_to_pinocchio(
+        hand_se3 = tracking_to_pinocchio(
             data["hand_pos"], data["hand_rot"], scale=self.dynamic_scale
         )
         self._target_pos = hand_se3.translation
         self._target_rot = hand_se3.rotation @ self._ee_rot_offset
 
-        elbow_se3 = unity_to_pinocchio(
+        elbow_se3 = tracking_to_pinocchio(
             data["elbow_pos"], (1, 0, 0, 0), scale=self.dynamic_scale
         )
         self._elbow_pos = elbow_se3.translation
@@ -251,10 +255,9 @@ def run(comm_cfg: CommConfig, ik_cfg: IKConfig) -> None:
     print(f"[IK] Max reach: {solver._max_reach:.4f} m")
 
     last_time = time.time()
-    
+
     try:
         while True:
-            #t0 = time.perf_counter()
             now = time.time()
             dt = max(now - last_time, ik_cfg.min_dt)
             last_time = now
@@ -272,13 +275,9 @@ def run(comm_cfg: CommConfig, ik_cfg: IKConfig) -> None:
             # 3. Visualize
             update_visualizer(viz, solver.robot, solver)
 
-            # 4. Publish joint angles back to Unity
+            # 4. Publish joint angles back to sender
             packed = struct.pack(f"{len(q_new)}f", *q_new.tolist())
             comm.send(packed)
-
-            #t1 = time.perf_counter()
-            #print(f"IK solve: {(t1-t0)*1000:.2f} ms")
-
 
     except KeyboardInterrupt:
         print("\n[IK] Shutting down.")
@@ -307,4 +306,3 @@ if __name__ == "__main__":
         ik_cfg.urdf_path = args.urdf
 
     run(comm_cfg, ik_cfg)
-

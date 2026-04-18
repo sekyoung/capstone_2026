@@ -1,15 +1,15 @@
 """
-test_ik_no_unity.py — verify the IK loop works before touching Unity.
+test_ik_no_source.py — verify the IK loop works standalone.
 
 Sends fake tracking packets over UDP in a loop, sweeping the hand target
 along a smooth sine-wave path.  Watch the arm move in the Meshcat window.
 
 Usage:
     # Terminal 1 — start IK process
-    python ik_process.py --comm UDP
+    python ik_process.py
 
     # Terminal 2 — run this script
-    python test_ik_no_unity.py
+    python test_ik_no_source.py
 
 Options:
     --ip     127.0.0.1   target IP
@@ -29,10 +29,9 @@ def sweep_packet(t: float, radius: float) -> dict:
     Circular sweep in the XZ plane at a fixed Y height.
     Elbow hint is placed halfway between base and hand.
     """
-    factor = 2 * math.pi / 5.0  # one full circle every 5 seconds
-    x = radius * math.cos(t * factor)
+    x = radius * math.cos(t * 2)
     y = 0.18                          # fixed height above base
-    z = 0.12 + radius * math.sin(t * factor)
+    z = 0.12 + radius * math.sin(t * 2)
 
     return {
         "type": "tracking",

@@ -2,11 +2,11 @@
 comm.py — UDP communication managers.
 
 IKComm   : used by ik_process.py
-             receive() → latest JSON bytes from Unity, or None
-             send(data) → sends joint angle bytes back to Unity
+             receive() → latest JSON bytes from the tracking source, or None
+             send(data) → sends joint angle bytes back to the sender
 
 HWComm   : used by hw_process.py
-             receive() → latest motor-command bytes from IK process, or None
+             receive() → latest motor-command bytes from the IK process, or None
              send(data) → sends motor feedback bytes back
 
 Both classes drain the socket on every receive() call so only the
@@ -23,11 +23,11 @@ from typing import Optional
 
 class IKComm:
     """
-    Receives tracking JSON from Unity on ik_recv_port.
-    Sends joint-angle bytes back to Unity on ik_send_port.
+    Receives tracking JSON from the tracking source on ik_recv_port.
+    Sends joint-angle bytes back to the sender on ik_send_port.
 
     The reply goes to whichever IP sent the last tracking packet,
-    so this works whether Unity is on the same machine or the network.
+    so this works whether the source is on the same machine or the network.
     """
 
     def __init__(self, ip: str, recv_port: int, send_port: int):
@@ -49,7 +49,7 @@ class IKComm:
         return latest
 
     def send(self, data: bytes) -> None:
-        """Send joint-angle bytes to Unity."""
+        """Send joint-angle bytes back to the tracking source."""
         if self._reply_addr is None:
             return
         self._sock.sendto(data, (self._reply_addr[0], self._send_port))
