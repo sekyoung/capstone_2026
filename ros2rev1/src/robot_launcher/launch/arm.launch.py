@@ -8,9 +8,10 @@ from launch_ros.actions import Node
 
 
 def generate_launch_description():
-    pkg_share = get_package_share_directory('robot_arm_ros2')
-    urdf_path = os.path.join(pkg_share, 'urdf', 'arm.urdf')
-    rviz_cfg  = os.path.join(pkg_share, 'rviz', 'arm.rviz')
+    urdf_path = get_package_share_directory('ik_solver')
+    rviz_path = get_package_share_directory('rviz_viewer')
+    urdf_path = os.path.join(urdf_path, 'urdf', 'arm.urdf')
+    rviz_cfg  = os.path.join(rviz_path, 'rviz', 'arm.rviz')
 
     with open(urdf_path, 'r') as fh:
         robot_description = fh.read()
@@ -37,7 +38,7 @@ def generate_launch_description():
     )
 
     sweep_node = Node(
-        package='robot_arm_ros2',
+        package='test_sweep',
         executable='sweep_node',
         name='sweep_node',
         output='screen',
@@ -48,7 +49,7 @@ def generate_launch_description():
     )
 
     ik_node = Node(
-        package='robot_arm_ros2',
+        package='ik_solver',
         executable='ik_node',
         name='ik_node',
         output='screen',

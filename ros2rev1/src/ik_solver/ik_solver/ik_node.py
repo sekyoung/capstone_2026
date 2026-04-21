@@ -6,8 +6,8 @@ from rclpy.node import Node
 from geometry_msgs.msg import PoseStamped
 from sensor_msgs.msg import JointState
 
-from robot_arm_ros2.config import IKConfig
-from robot_arm_ros2.ik_solver import IKSolver
+from ik_solver.config import IKConfig
+from ik_solver.ik_solver import IKSolver
 
 
 def _pose_to_se3(msg: PoseStamped):
