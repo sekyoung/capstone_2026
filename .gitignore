@@ -161,6 +161,22 @@ pyrightconfig.json
 .vscode
 
 #Custom patches
-deprecated/
+#deprecated/
+build/
+install/
+log/
+.colcon_install_layout
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+*.egg-link
+*.dist-info/
+
+
+# OS
+.DS_Store
+Thumbs.db
 
 # End of https://www.toptal.com/developers/gitignore/api/python,visualstudiocode
