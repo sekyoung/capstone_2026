@@ -1,1 +1,0 @@
-/home/sek_kim/Desktop/QP/ROS2TEST/build/robot_arm_ros2/launch/arm.launch.py

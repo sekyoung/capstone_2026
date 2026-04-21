@@ -1,4 +1,0 @@
-[console_scripts]
-ik_node = robot_arm_ros2.ik_node:main
-meshcat_bridge = robot_arm_ros2.meshcat_bridge:main
-sweep_node = robot_arm_ros2.sweep_node:main

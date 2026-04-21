@@ -1,7 +1,0 @@
-Metadata-Version: 2.1
-Name: robot-arm-ros2
-Version: 0.1.0
-Summary: Robot arm IK with ROS2, RViz2, and Meshcat
-Maintainer: user
-Maintainer-email: user@todo.com
-License: MIT

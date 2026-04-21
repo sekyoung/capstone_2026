@@ -1,0 +1,26 @@
+build/
+install/
+log/
+.colcon_install_layout
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+*.egg-link
+*.dist-info/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
