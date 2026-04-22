@@ -1,3 +1,6 @@
+#ros2 run wasd_teleop teleop_node
+#ros2 launch robot_launcher wasd_test.py
+
 import os
 
 from ament_index_python.packages import get_package_share_directory
