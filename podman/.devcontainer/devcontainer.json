@@ -1,0 +1,40 @@
+{
+  "name": "capstone_2026 — ROS 2 Jazzy",
+  "image": "capstone2026",
+  /*"build": {
+    "dockerfile": "../Dockerfile",
+    "context": ".."
+  }, */
+
+  "runArgs": [
+    "--network=host",
+    "-e", "DISPLAY=${localEnv:DISPLAY}",
+    "-e", "QT_QPA_PLATFORM=xcb",
+    "-e", "LIBGL_ALWAYS_SOFTWARE=1",
+    "-e", "MESA_GL_VERSION_OVERRIDE=3.3"
+  ],
+
+  "workspaceMount": "source=${localWorkspaceFolder},target=/opt/ros2_ws/src_dev,type=bind,Z",
+  "workspaceFolder": "/opt/ros2_ws",
+
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "bash"
+      },
+      "extensions": [
+        "ms-vscode.cpptools",
+        "ms-python.python",
+        "ms-iot.vscode-ros"
+      ]
+    }
+  },
+
+  "remoteUser": "root",
+
+  "remoteEnv": {
+    "SHELL": "/bin/bash"
+  },
+
+  "postStartCommand": "/bin/bash -c 'source /opt/ros/jazzy/setup.bash; if [ ! -f /opt/ros2_ws/install/setup.bash ]; then colcon build --symlink-install; fi; source /opt/ros2_ws/install/setup.bash'"
+}
